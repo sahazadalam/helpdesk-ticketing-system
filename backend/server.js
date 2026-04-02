@@ -7,23 +7,28 @@ const errorHandler = require('./middleware/errorHandler');
 // Load env vars
 dotenv.config();
 
-// Connect to database
-connectDB();
+// Connect to database (safe)
+connectDB().catch(err => {
+  console.log("❌ DB connection failed:", err.message);
+});
 
 const app = express();
 
 // Body parser
 app.use(express.json());
 
-// Enable CORS
+// ✅ CORS FIX (allow all for now)
 app.use(cors({
-  origin: ['http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: "*",
+  credentials: true
 }));
 
-// Mount routes
+// ✅ ROOT ROUTE (VERY IMPORTANT for Render)
+app.get("/", (req, res) => {
+  res.send("API Running...");
+});
+
+// Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
 
@@ -35,12 +40,12 @@ app.get('/api/test', (req, res) => {
 // Error handler middleware
 app.use(errorHandler);
 
+// Port setup (IMPORTANT for Render)
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 API URL: http://localhost:${PORT}/api`);
 });
 
 // Handle unhandled promise rejections
