@@ -18,69 +18,70 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
+    const savedUser = localStorage.getItem('user');
+    
+    if (token && savedUser) {
+      setUser(JSON.parse(savedUser));
     }
+    setLoading(false);
   }, []);
-
-  const fetchUser = async () => {
-    try {
-      const response = await axios.get('/auth/me');
-      setUser(response.data);
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      localStorage.removeItem('token');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const login = async (email, password) => {
     try {
+      console.log('Attempting login with:', email);
+      
       const response = await axios.post('/auth/login', { email, password });
+      console.log('Login response:', response.data);
+      
       const { token, ...userData } = response.data;
       
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      toast.success('Login successful!');
+      
+      toast.success(`Welcome back, ${userData.name}!`);
       return { success: true };
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
-      return { success: false, error: error.response?.data?.message };
+      console.error('Login error:', error.response?.data);
+      const message = error.response?.data?.message || 'Login failed. Please check your credentials.';
+      toast.error(message);
+      return { success: false, error: message };
     }
   };
 
-  const register = async (name, email, password, role = 'user') => {
+  const register = async (name, email, password) => {
     try {
-      const response = await axios.post('/auth/register', { name, email, password, role });
+      const response = await axios.post('/auth/register', {
+        name,
+        email,
+        password,
+        role: 'user'
+      });
+      
       const { token, ...userData } = response.data;
       
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
+      
       toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Registration failed');
-      return { success: false, error: error.response?.data?.message };
+      const message = error.response?.data?.message || 'Registration failed';
+      toast.error(message);
+      return { success: false, error: message };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     toast.success('Logged out successfully');
   };
 
-  const value = {
-    user,
-    login,
-    register,
-    logout,
-    loading,
-  };
-
+  const value = { user, login, register, logout, loading };
+  
   return (
     <AuthContext.Provider value={value}>
       {children}
